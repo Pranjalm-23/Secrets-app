@@ -45,7 +45,7 @@ passport.use(User.createStrategy());
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
-app.get("/home", (req, res) => {
+app.get("/", (req, res) => {
   res.render("home.ejs");
 });
 
@@ -57,9 +57,55 @@ app.get("/login", (req, res) => {
   res.render("login.ejs");
 });
 
-app.post("/register", (req, res) => {});
+app.get("/secrets", (req, res) => {
+  //cookies are working here
+  if (req.isAuthenticated()) {
+    res.render("secrets");
+  } else {
+    res.redirect("/login");
+  }
+});
 
-app.post("/login", (req, res) => {});
+app.get("/logout", (req, res) => {
+  req.logout();
+  res.redirect("/");
+});
+
+app.post("/register", (req, res) => {
+  // implementation using passport
+  User.register(
+    { username: req.body.username },
+    req.body.password,
+    (err, user) => {
+      if (err) {
+        console.log(err);
+        res.redirect("/register");
+      } else {
+        //our authenication is "local"
+        passport.authenticate("local")(req, res, () => {
+          res.redirect("/secrets");
+        });
+      }
+    }
+  );
+});
+
+app.post("/login", (req, res) => {
+  const user = new User({
+    username: req.body.username,
+    password: req.body.password,
+  });
+  //using passport
+  req.login(user, (err) => {
+    if (err) {
+      console.log(err);
+    } else {
+      passport.authenticate("local")(req, res, () => {
+        res.redirect("/secrets");
+      });
+    }
+  });
+});
 
 app.listen(3000, function () {
   console.log("Server started on port 3000");
