@@ -4,7 +4,9 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const md5 = require("md5");
+const session = require("express-session");
+const passport = require("passport");
+const passportLocalMongoose = require("passport-local-mongoose");
 
 const app = express();
 
@@ -15,6 +17,18 @@ app.use(
     extended: true,
   })
 );
+
+app.use(
+  session({
+    secret: "Our little secret.",
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
 mongoose.connect("mongodb://localhost:27017/userDB");
 
 const userSchema = new mongoose.Schema({
@@ -22,7 +36,14 @@ const userSchema = new mongoose.Schema({
   password: String,
 });
 
+userSchema.plugin(passportLocalMongoose);
+
 const User = new mongoose.model("User", userSchema);
+
+passport.use(User.createStrategy());
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
 app.get("/home", (req, res) => {
   res.render("home.ejs");
@@ -36,36 +57,9 @@ app.get("/login", (req, res) => {
   res.render("login.ejs");
 });
 
-app.post("/register", (req, res) => {
-  const newUser = new User({
-    email: req.body.username,
-    password: md5(req.body.password),
-  });
-  newUser.save((err) => {
-    if (err) {
-      console.log(err);
-    } else {
-      res.render("secrets");
-    }
-  });
-});
+app.post("/register", (req, res) => {});
 
-app.post("/login", (req, res) => {
-  const username = req.body.username;
-  const password = md5(req.body.password);
-
-  User.findOne({ email: username }, (err, foundUser) => {
-    if (err) {
-      console.log(err);
-    } else {
-      if (foundUser) {
-        if (foundUser.password === password) {
-          res.render("secrets");
-        }
-      }
-    }
-  });
-});
+app.post("/login", (req, res) => {});
 
 app.listen(3000, function () {
   console.log("Server started on port 3000");
