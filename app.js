@@ -108,12 +108,16 @@ app.get("/login", (req, res) => {
 });
 
 app.get("/secrets", (req, res) => {
-  //cookies are working here
-  if (req.isAuthenticated()) {
-    res.render("secrets");
-  } else {
-    res.redirect("/login");
-  }
+  //Everyone with or without authentication can access
+  User.find({ secret: { $ne: null } }, (err, foundUsers) => {
+    if (err) {
+      console.log(err);
+    } else {
+      if (foundUsers) {
+        res.render("secrets", { usersWithSecrets: foundUsers });
+      }
+    }
+  });
 });
 
 app.get("/submit", (req, res) => {
